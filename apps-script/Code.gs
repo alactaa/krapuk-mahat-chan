@@ -97,7 +97,7 @@ function jsonErr(msg) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ── GET router ──────────────────────────────────────────────
+// ── GET router (handles everything — no CORS preflight) ─────
 function doGet(e) {
   try {
     var p = e.parameter;
@@ -106,6 +106,9 @@ function doGet(e) {
       case 'getKid':          return jsonOk(getKid(p.kid_id));
       case 'getTransactions': return jsonOk(getTransactions(p.kid_id, Number(p.days) || 30));
       case 'getGoals':        return jsonOk(getGoals(p.kid_id));
+      case 'addTransaction':  return jsonOk(addTransaction(p));
+      case 'checkDaily':      return jsonOk(checkDaily(p.kid_id));
+      case 'setGoal':         return jsonOk(setGoal(p));
       default:                return jsonErr('Unknown action: ' + p.action);
     }
   } catch (err) {
@@ -119,21 +122,6 @@ function getAll(kid_id, days) {
   var transactions = getTransactions(kid_id, days);
   var goals = getGoals(kid_id);
   return { kid: kid, transactions: transactions, goals: goals };
-}
-
-// ── POST router ─────────────────────────────────────────────
-function doPost(e) {
-  try {
-    var body = JSON.parse(e.postData.contents);
-    switch (body.action) {
-      case 'addTransaction': return jsonOk(addTransaction(body));
-      case 'checkDaily':     return jsonOk(checkDaily(body.kid_id));
-      case 'setGoal':        return jsonOk(setGoal(body));
-      default:               return jsonErr('Unknown action: ' + body.action);
-    }
-  } catch (err) {
-    return jsonErr(err.message);
-  }
 }
 
 // ── getKid ───────────────────────────────────────────────────
