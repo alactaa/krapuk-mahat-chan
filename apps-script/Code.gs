@@ -293,6 +293,12 @@ function addTransaction(body) {
 
 // ── checkDaily ───────────────────────────────────────────────
 function checkDaily(kid_id) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return { added: false };
+  try { return _checkDailyInner(kid_id); } finally { lock.releaseLock(); }
+}
+
+function _checkDailyInner(kid_id) {
   var sheet = getSheet('kids');
   var rows = sheet.getDataRange().getValues();
   var headers = rows[0];
@@ -317,6 +323,7 @@ function checkDaily(kid_id) {
   }
   return { added: false };
 }
+
 
 // ── setGoal ──────────────────────────────────────────────────
 function setGoal(body) {
