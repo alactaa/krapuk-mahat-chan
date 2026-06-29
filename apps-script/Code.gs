@@ -299,29 +299,35 @@ function checkDaily(kid_id) {
 }
 
 function _checkDailyInner(kid_id) {
-  var sheet = getSheet('kids');
-  var rows = sheet.getDataRange().getValues();
-  var headers = rows[0];
   var todayStr = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
 
-  for (var i = 1; i < rows.length; i++) {
-    if (rows[i][headers.indexOf('kid_id')] !== kid_id) continue;
-    var rawDate = rows[i][headers.indexOf('last_daily_date')];
-    var lastDate = (rawDate instanceof Date)
-      ? Utilities.formatDate(rawDate, 'Asia/Bangkok', 'yyyy-MM-dd')
-      : String(rawDate).slice(0, 10);
-    var dailyAmount = Number(rows[i][headers.indexOf('daily_amount')]);
-    if (lastDate === todayStr) return { added: false };
-
-    // Update last_daily_date
-    sheet.getRange(i + 1, headers.indexOf('last_daily_date') + 1).setValue(todayStr);
-
-    // Insert transaction
-    addTransaction({ kid_id: kid_id, type: 'daily', amount: dailyAmount, note: 'เงินรายวัน' });
-
-    return { added: true, amount: dailyAmount };
+  // Check transactions directly — more reliable than last_daily_date field
+  var txSheet = getSheet('transactions');
+  var txRows = txSheet.getDataRange().getValues();
+  var txHeaders = txRows[0];
+  var kidIdx = txHeaders.indexOf('kid_id');
+  var typeIdx = txHeaders.indexOf('type');
+  var tsIdx = txHeaders.indexOf('timestamp');
+  for (var i = 1; i < txRows.length; i++) {
+    if (txRows[i][kidIdx] !== kid_id) continue;
+    if (txRows[i][typeIdx] !== 'daily') continue;
+    if (String(txRows[i][tsIdx]).slice(0, 10) === todayStr) return { added: false };
   }
-  return { added: false };
+
+  // Get daily amount from kids sheet
+  var kSheet = getSheet('kids');
+  var kRows = kSheet.getDataRange().getValues();
+  var kHeaders = kRows[0];
+  var dailyAmount = 20;
+  for (var j = 1; j < kRows.length; j++) {
+    if (kRows[j][kHeaders.indexOf('kid_id')] === kid_id) {
+      dailyAmount = Number(kRows[j][kHeaders.indexOf('daily_amount')]);
+      break;
+    }
+  }
+
+  addTransaction({ kid_id: kid_id, type: 'daily', amount: dailyAmount, note: 'เงินรายวัน' });
+  return { added: true, amount: dailyAmount };
 }
 
 
