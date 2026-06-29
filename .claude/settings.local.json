@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__visualize__read_me",
+      "Bash(npx --yes create-vite@latest . --template react)",
+      "Bash(npm install *)",
+      "Bash(npm run *)"
+    ]
+  }
+}
