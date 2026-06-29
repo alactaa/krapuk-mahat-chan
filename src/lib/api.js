@@ -1,8 +1,6 @@
-const SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || ''
-
 async function call(params) {
   const qs = new URLSearchParams(params).toString()
-  const res = await fetch(`${SCRIPT_URL}?${qs}`)
+  const res = await fetch(`/api/proxy?${qs}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
