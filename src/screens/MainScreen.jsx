@@ -45,8 +45,8 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
     setTimeout(() => setToast(''), 3000)
   }
 
-  async function handleAction(type, data) {
-    await api.addTransaction({ kid_id: kidConfig.id, type, ...data })
+  async function handleAction(data) {
+    await api.addTransaction({ kid_id: kidConfig.id, ...data })
     showToast(
       type === 'deposit' ? `💰 ฝาก +${data.amount} บาท` :
       type === 'withdraw' ? `🛒 ใช้ -${data.amount} บาท` :
