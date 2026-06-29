@@ -261,7 +261,7 @@ function addTransaction(body) {
   else newBalance -= amount;
 
   var tx_id = Utilities.getUuid();
-  var timestamp = new Date().toISOString();
+  var timestamp = Utilities.formatDate(new Date(), 'Asia/Bangkok', "yyyy-MM-dd'T'HH:mm:ss+07:00");
   var sheet = getSheet('transactions');
   sheet.appendRow([tx_id, kid_id, type, amount, note, timestamp, newBalance]);
 
@@ -318,7 +318,11 @@ function _checkDailyInner(kid_id) {
   for (var i = 1; i < txRows.length; i++) {
     if (txRows[i][kidIdx] !== kid_id) continue;
     if (txRows[i][typeIdx] !== 'daily') continue;
-    if (String(txRows[i][tsIdx]).slice(0, 10) === todayStr) return { added: false };
+    var tsRaw = txRows[i][tsIdx];
+    var tsBkk = (tsRaw instanceof Date)
+      ? Utilities.formatDate(tsRaw, 'Asia/Bangkok', 'yyyy-MM-dd')
+      : Utilities.formatDate(new Date(String(tsRaw)), 'Asia/Bangkok', 'yyyy-MM-dd');
+    if (tsBkk === todayStr) return { added: false };
   }
 
   // Get daily amount from kids sheet
