@@ -97,6 +97,13 @@ function jsonErr(msg) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// ── dailyJob ── triggered by Apps Script time-driven trigger at 5am ──
+function dailyJob() {
+  ['tae', 'taey'].forEach(function(kid_id) {
+    try { _checkDailyInner(kid_id); } catch(e) { Logger.log('dailyJob error ' + kid_id + ': ' + e.message); }
+  });
+}
+
 // ── GET router (handles everything — no CORS preflight) ─────
 function doGet(e) {
   try {

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useKidData } from '../hooks/useKidData'
-import { useDaily } from '../hooks/useDaily'
 import { api } from '../lib/api'
 import BalanceHero from '../components/BalanceHero'
 import StreakBar from '../components/StreakBar'
@@ -34,11 +33,6 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
   const [activeNav, setActiveNav] = useState('home')
 
   const gradient = kidConfig.gradient
-
-  useDaily(kidConfig.id, (amount) => {
-    showToast(`🎉 ได้รับเงินรายวัน +${amount} บาท!`)
-    refresh()
-  })
 
   function showToast(msg) {
     setToast(msg)
