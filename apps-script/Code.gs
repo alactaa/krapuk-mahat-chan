@@ -106,9 +106,9 @@ function doGet(e) {
       case 'getKid':          return jsonOk(getKid(p.kid_id));
       case 'getTransactions': return jsonOk(getTransactions(p.kid_id, Number(p.days) || 30));
       case 'getGoals':        return jsonOk(getGoals(p.kid_id));
-      case 'addTransaction':  return jsonOk(addTransaction(p));
+      case 'addTransaction':  return jsonOk(addTransaction({ kid_id: p.kid_id, type: String(p.type), amount: Number(p.amount), note: p.note || '' }));
       case 'checkDaily':      return jsonOk(checkDaily(p.kid_id));
-      case 'setGoal':         return jsonOk(setGoal(p));
+      case 'setGoal':         return jsonOk(setGoal({ kid_id: p.kid_id, goal_id: p.goal_id, name: p.name, target_amount: p.target_amount, emoji: p.emoji }));
       default:                return jsonErr('Unknown action: ' + p.action);
     }
   } catch (err) {
