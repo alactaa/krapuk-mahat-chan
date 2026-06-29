@@ -48,11 +48,11 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
   async function handleAction(data) {
     await api.addTransaction({ kid_id: kidConfig.id, ...data })
     showToast(
-      type === 'deposit' ? `💰 ฝาก +${data.amount} บาท` :
-      type === 'withdraw' ? `🛒 ใช้ -${data.amount} บาท` :
-      type === 'loan' ? `🤝 ยืม +${data.amount} บาท` :
-      type === 'bonus' ? `⭐ โบนัส +${data.amount} บาท` :
-      type === 'loan_repay' ? `💜 จ่ายคืน -${data.amount} บาท` : 'บันทึกแล้ว!'
+      data.type === 'deposit' ? `💰 ฝาก +${data.amount} บาท` :
+      data.type === 'withdraw' ? `🛒 ใช้ -${data.amount} บาท` :
+      data.type === 'loan' ? `🤝 ยืม +${data.amount} บาท` :
+      data.type === 'bonus' ? `⭐ โบนัส +${data.amount} บาท` :
+      data.type === 'loan_repay' ? `💜 จ่ายคืน -${data.amount} บาท` : 'บันทึกแล้ว!'
     )
     refresh()
   }
