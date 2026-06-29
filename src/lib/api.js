@@ -10,7 +10,6 @@ async function get(params) {
 async function post(action, body) {
   const res = await fetch(SCRIPT_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, ...body }),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)

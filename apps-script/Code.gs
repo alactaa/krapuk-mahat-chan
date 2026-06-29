@@ -47,6 +47,16 @@ function setupSheet() {
   Logger.log('✅ Setup complete!');
 }
 
+// ── seedBalance ── รันครั้งเดียวเพื่อเพิ่มเงินเริ่มต้น 200 บาท ──
+function seedBalance() {
+  var now = new Date().toISOString();
+  var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  var sh = SpreadsheetApp.openById(id).getSheetByName('transactions');
+  sh.appendRow([Utilities.getUuid(), 'tae',  'deposit', 200, 'เงินก้นถัง', now, 200]);
+  sh.appendRow([Utilities.getUuid(), 'taey', 'deposit', 200, 'เงินก้นถัง', now, 200]);
+  Logger.log('✅ seedBalance done!');
+}
+
 function getSheet(name) {
   var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
   return SpreadsheetApp.openById(id).getSheetByName(name);
