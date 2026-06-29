@@ -47,14 +47,31 @@ function setupSheet() {
   Logger.log('✅ Setup complete!');
 }
 
-// ── seedBalance ── รันครั้งเดียวเพื่อเพิ่มเงินเริ่มต้น 200 บาท ──
-function seedBalance() {
-  var now = new Date().toISOString();
+// ── resetAndSeed ── ล้าง transactions + รีเซ็ต daily date + ใส่ 200 บาทเริ่มต้น ──
+function resetAndSeed() {
   var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
-  var sh = SpreadsheetApp.openById(id).getSheetByName('transactions');
-  sh.appendRow([Utilities.getUuid(), 'tae',  'deposit', 200, 'เงินก้นถัง', now, 200]);
-  sh.appendRow([Utilities.getUuid(), 'taey', 'deposit', 200, 'เงินก้นถัง', now, 200]);
-  Logger.log('✅ seedBalance done!');
+  var ss = SpreadsheetApp.openById(id);
+
+  // ล้าง transactions ทั้งหมด แล้วใส่ headers ใหม่
+  var txSh = ss.getSheetByName('transactions');
+  txSh.clearContents();
+  txSh.getRange(1, 1, 1, 7).setValues([['tx_id','kid_id','type','amount','note','timestamp','balance_after']]);
+
+  // ใส่เงินเริ่มต้น 200 บาท
+  var now = new Date().toISOString();
+  txSh.appendRow([Utilities.getUuid(), 'tae',  'deposit', 200, 'เงินก้นถัง', now, 200]);
+  txSh.appendRow([Utilities.getUuid(), 'taey', 'deposit', 200, 'เงินก้นถัง', now, 200]);
+
+  // รีเซ็ต last_daily_date เป็นวันนี้ (ไม่ให้ daily วิ่งซ้ำ)
+  var todayStr = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
+  var kidsSh = ss.getSheetByName('kids');
+  var kidRows = kidsSh.getDataRange().getValues();
+  var kidHeaders = kidRows[0];
+  for (var i = 1; i < kidRows.length; i++) {
+    kidsSh.getRange(i + 1, kidHeaders.indexOf('last_daily_date') + 1).setValue(todayStr);
+  }
+
+  Logger.log('✅ resetAndSeed done! ยอดเงินเริ่มต้น 200 บาท / คน');
 }
 
 function getSheet(name) {
@@ -85,6 +102,7 @@ function doGet(e) {
   try {
     var p = e.parameter;
     switch (p.action) {
+      case 'getAll':          return jsonOk(getAll(p.kid_id, Number(p.days) || 30));
       case 'getKid':          return jsonOk(getKid(p.kid_id));
       case 'getTransactions': return jsonOk(getTransactions(p.kid_id, Number(p.days) || 30));
       case 'getGoals':        return jsonOk(getGoals(p.kid_id));
@@ -93,6 +111,14 @@ function doGet(e) {
   } catch (err) {
     return jsonErr(err.message);
   }
+}
+
+// ── getAll ── 1 call แทน 3 ────────────────────────────────
+function getAll(kid_id, days) {
+  var kid = getKid(kid_id);
+  var transactions = getTransactions(kid_id, days);
+  var goals = getGoals(kid_id);
+  return { kid: kid, transactions: transactions, goals: goals };
 }
 
 // ── POST router ─────────────────────────────────────────────
@@ -286,7 +312,10 @@ function checkDaily(kid_id) {
 
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][headers.indexOf('kid_id')] !== kid_id) continue;
-    var lastDate = String(rows[i][headers.indexOf('last_daily_date')]).slice(0, 10);
+    var rawDate = rows[i][headers.indexOf('last_daily_date')];
+    var lastDate = (rawDate instanceof Date)
+      ? Utilities.formatDate(rawDate, 'Asia/Bangkok', 'yyyy-MM-dd')
+      : String(rawDate).slice(0, 10);
     var dailyAmount = Number(rows[i][headers.indexOf('daily_amount')]);
     if (lastDate === todayStr) return { added: false };
 

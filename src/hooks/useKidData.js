@@ -13,11 +13,7 @@ export function useKidData(kidId) {
     setLoading(true)
     setError(null)
     try {
-      const [kidData, txData, goalData] = await Promise.all([
-        api.getKid(kidId),
-        api.getTransactions(kidId, 30),
-        api.getGoals(kidId),
-      ])
+      const { kid: kidData, transactions: txData, goals: goalData } = await api.getAll(kidId)
       setKid(kidData)
       setTransactions(txData)
       setGoals(goalData)

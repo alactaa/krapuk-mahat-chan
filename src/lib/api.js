@@ -17,6 +17,7 @@ async function post(action, body) {
 }
 
 export const api = {
+  getAll: (kid_id, days = 30) => get({ action: 'getAll', kid_id, days }),
   getKid: (kid_id) => get({ action: 'getKid', kid_id }),
   getTransactions: (kid_id, days = 30) => get({ action: 'getTransactions', kid_id, days }),
   getGoals: (kid_id) => get({ action: 'getGoals', kid_id }),
