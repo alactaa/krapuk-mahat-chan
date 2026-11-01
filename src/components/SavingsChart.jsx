@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, Dot,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart,
 } from 'recharts'
+import { signedAmount, localDateStr, txDate } from '../lib/tx'
 
 function getMoodMessage(trend) {
   if (trend < -200) return '😱 เงินลดฮวบเลย! ระวังด้วยนะ! 🙏'
@@ -29,22 +30,26 @@ export default function SavingsChart({ transactions }) {
   const [range, setRange] = useState(7)
 
   const data = useMemo(() => {
-    const days = range
+    // transactions มีแค่ 30 วันล่าสุด ถ้าเอามาบวกลบเองจะขาดยอดยกมา (กราฟเคยติดศูนย์)
+    // จึงใช้ balance_after ที่ชีตบันทึกไว้ทุกรายการ แล้วลากยอดล่าสุดของแต่ละวันต่อไป
+    const txs = transactions
+      .filter((tx) => tx.timestamp && tx.balance_after !== '' && tx.balance_after != null)
+      .sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)))
+
+    // ยอดก่อนรายการแรกในช่วง = ยอดหลังรายการแรก ถอยกลับด้วยจำนวนของมัน
+    let running = txs.length ? Number(txs[0].balance_after) - signedAmount(txs[0]) : 0
+    let next = 0
     const now = new Date()
     const points = []
-    for (let i = days - 1; i >= 0; i--) {
+    for (let i = range - 1; i >= 0; i--) {
       const d = new Date(now)
       d.setDate(d.getDate() - i)
-      const label = `${d.getDate()}/${d.getMonth() + 1}`
-      const dateStr = d.toISOString().slice(0, 10)
-      const txsUpToDate = transactions.filter(
-        (tx) => tx.timestamp.slice(0, 10) <= dateStr
-      )
-      const balance = txsUpToDate.reduce((sum, tx) => {
-        const sign = ['deposit', 'daily', 'bonus'].includes(tx.type) ? 1 : -1
-        return sum + sign * Number(tx.amount)
-      }, 0)
-      points.push({ label, balance: Math.max(0, balance) })
+      const dateStr = localDateStr(d)
+      while (next < txs.length && txDate(txs[next]) <= dateStr) {
+        running = Number(txs[next].balance_after)
+        next++
+      }
+      points.push({ label: `${d.getDate()}/${d.getMonth() + 1}`, balance: running })
     }
     return points
   }, [transactions, range])
@@ -83,7 +88,16 @@ export default function SavingsChart({ transactions }) {
             </linearGradient>
           </defs>
           <XAxis dataKey="label" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+          {/* ยอดหลักพัน ถ้าแกนเริ่มที่ 0 เส้นจะแบนจนมองไม่เห็นการขึ้นลง */}
+          <YAxis
+            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+            domain={[
+              (min) => Math.max(0, Math.floor((min * 0.9) / 100) * 100),
+              (max) => Math.ceil((max * 1.05) / 100) * 100,
+            ]}
+          />
           <Tooltip
             contentStyle={{ background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12, color: 'white', fontSize: 12 }}
             formatter={(v) => [`${v.toLocaleString()} บาท`, '']}
@@ -94,7 +108,7 @@ export default function SavingsChart({ transactions }) {
             stroke={color}
             strokeWidth={2.5}
             fill="url(#chartGrad)"
-            dot={(props) => <CustomDot {...props} dataLength={data.length} color={color} />}
+            dot={({ key, ...props }) => <CustomDot key={key} {...props} dataLength={data.length} color={color} />}
             activeDot={{ r: 5, fill: color }}
           />
         </AreaChart>

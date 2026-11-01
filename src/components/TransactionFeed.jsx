@@ -1,11 +1,4 @@
-const TYPE_META = {
-  daily:      { icon: '🌅', label: 'เงินรายวัน',  color: '#00C853', sign: '+' },
-  deposit:    { icon: '💰', label: 'ฝากเงิน',     color: '#00C853', sign: '+' },
-  withdraw:   { icon: '🛒', label: 'ใช้เงิน',     color: '#FF3D00', sign: '-' },
-  loan:       { icon: '🤝', label: 'ยืมเงิน',     color: '#9C27B0', sign: '+' },
-  bonus:      { icon: '⭐', label: 'โบนัส',       color: '#FFD600', sign: '+' },
-  loan_repay: { icon: '💜', label: 'จ่ายคืน',     color: '#9C27B0', sign: '-' },
-}
+import { TYPE_META } from '../lib/tx'
 
 function formatDate(ts) {
   const d = new Date(ts)

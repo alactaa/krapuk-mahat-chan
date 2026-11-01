@@ -9,6 +9,10 @@ import LoanWarning from '../components/LoanWarning'
 import ActionGrid from '../components/ActionGrid'
 import TransactionFeed from '../components/TransactionFeed'
 import ActionModal from '../components/ActionModal'
+import StatsTab from '../components/StatsTab'
+import GoalsTab from '../components/GoalsTab'
+import RewardsTab from '../components/RewardsTab'
+import { signedAmount, localDateStr, txDate } from '../lib/tx'
 
 function Toast({ msg }) {
   if (!msg) return null
@@ -51,13 +55,15 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
     refresh()
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = localDateStr(new Date())
   const todayDelta = (transactions || [])
-    .filter((tx) => tx.timestamp?.slice(0, 10) === todayStr)
-    .reduce((s, tx) => {
-      const sign = ['deposit', 'daily', 'bonus', 'loan'].includes(tx.type) ? 1 : -1
-      return s + sign * Number(tx.amount)
-    }, 0)
+    .filter((tx) => txDate(tx) === todayStr)
+    .reduce((s, tx) => s + signedAmount(tx), 0)
+
+  function switchTab(key) {
+    setActiveNav(key)
+    window.scrollTo({ top: 0 })
+  }
 
   const activeLoans = (kid?.loans || []).filter((l) => l.status === 'active')
   const loanRemaining = activeLoans.reduce((s, l) => s + Number(l.remaining), 0)
@@ -82,6 +88,18 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
       <div className="flex-1 overflow-y-auto scrollbar-hide pb-20">
         {loading ? (
           <div className="flex items-center justify-center h-60 text-white/40 text-sm">กำลังโหลด...</div>
+        ) : activeNav === 'stats' ? (
+          <StatsTab transactions={transactions || []} />
+        ) : activeNav === 'goals' ? (
+          <GoalsTab
+            goals={goals || []}
+            balance={kid?.balance || 0}
+            dailyAmount={kid?.daily_amount || 0}
+            kidId={kidConfig.id}
+            onSaved={refresh}
+          />
+        ) : activeNav === 'rewards' ? (
+          <RewardsTab kid={kid} transactions={transactions || []} goals={goals || []} />
         ) : (
           <>
             {kid && (
@@ -112,7 +130,7 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
         {NAV_ITEMS.map((n) => (
           <button
             key={n.key}
-            onClick={() => setActiveNav(n.key)}
+            onClick={() => switchTab(n.key)}
             className={`flex-1 flex flex-col items-center py-3 gap-0.5 transition-all active:scale-90 ${
               activeNav === n.key ? 'opacity-100' : 'opacity-40'
             }`}
