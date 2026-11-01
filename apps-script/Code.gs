@@ -3,6 +3,13 @@
 //  Deploy as Web App: Execute as Me, Anyone can access
 // ============================================================
 
+// account = ชื่อธนาคาร (ใช้กับ bank และ BANK_ONLY เท่านั้น)
+var TX_HEADERS = ['tx_id','kid_id','type','amount','note','timestamp','balance_after','account'];
+
+// เพิ่มยอดกระปุก (นอกนั้นหักออก ยกเว้น BANK_ONLY ที่ไม่แตะกระปุกเลย) — frontend มีชุดเดียวกันใน src/lib/tx.js
+var BALANCE_PLUS = ['deposit', 'daily', 'bonus', 'loan'];
+var BANK_ONLY = ['bank_interest', 'bank_external']; // ดอกเบี้ย + เงินจากข้างนอกเข้าบัญชีตรง (ไม่เคยผ่านกระปุก)
+
 // ── setupSheet ── รันครั้งเดียวเพื่อสร้าง headers + ข้อมูลเริ่มต้น ──
 function setupSheet() {
   var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
@@ -26,10 +33,7 @@ function setupSheet() {
     ]
   );
 
-  initSheet('transactions',
-    ['tx_id','kid_id','type','amount','note','timestamp','balance_after'],
-    []
-  );
+  initSheet('transactions', TX_HEADERS, []);
 
   initSheet('goals',
     ['goal_id','kid_id','name','target_amount','emoji'],
@@ -55,7 +59,7 @@ function resetAndSeed() {
   // ล้าง transactions ทั้งหมด แล้วใส่ headers ใหม่
   var txSh = ss.getSheetByName('transactions');
   txSh.clearContents();
-  txSh.getRange(1, 1, 1, 7).setValues([['tx_id','kid_id','type','amount','note','timestamp','balance_after']]);
+  txSh.getRange(1, 1, 1, TX_HEADERS.length).setValues([TX_HEADERS]);
 
   // ใส่เงินเริ่มต้น 200 บาท
   var now = new Date().toISOString();
@@ -77,6 +81,37 @@ function resetAndSeed() {
 function getSheet(name) {
   var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
   return SpreadsheetApp.openById(id).getSheetByName(name);
+}
+
+// ชีตเดิมมี 7 คอลัมน์ — เติม header ที่ขาดก่อนเขียนแถวที่ยาวขึ้น
+// (ค่าในคอลัมน์ที่ไม่มีชื่อ getTransactions/getKid จะมองไม่เห็น)
+function ensureTxHeaders_(sheet) {
+  var width = Math.max(sheet.getLastColumn(), TX_HEADERS.length);
+  var current = sheet.getRange(1, 1, 1, width).getValues()[0];
+  for (var c = 0; c < TX_HEADERS.length; c++) {
+    if (current[c] === TX_HEADERS[c]) continue;
+    if (current[c] === '') { sheet.getRange(1, c + 1).setValue(TX_HEADERS[c]); continue; }
+    throw new Error('transactions header mismatch at column ' + (c + 1) + ': ' + current[c]);
+  }
+}
+
+// ── migrateBankRows ── รันครั้งเดียวจาก editor
+// แถว "ฝากscb" ที่เคยบันทึกเป็น withdraw → bank / SCB (ยอดกระปุกไม่เปลี่ยน เพราะหักออกเหมือนกัน) · รันซ้ำได้ ไม่แก้ซ้ำ
+function migrateBankRows() {
+  var sheet = getSheet('transactions');
+  ensureTxHeaders_(sheet);
+  var rows = sheet.getDataRange().getValues();
+  var h = rows[0];
+  var typeCol = h.indexOf('type'), noteCol = h.indexOf('note'), acctCol = h.indexOf('account');
+  var n = 0;
+  for (var i = 1; i < rows.length; i++) {
+    var note = String(rows[i][noteCol]).replace(/\s+/g, '').toLowerCase();
+    if (rows[i][typeCol] !== 'withdraw' || note !== 'ฝากscb') continue;
+    sheet.getRange(i + 1, typeCol + 1).setValue('bank');
+    sheet.getRange(i + 1, acctCol + 1).setValue('SCB');
+    n++;
+  }
+  Logger.log('migrateBankRows: แก้ ' + n + ' แถว');
 }
 
 // Handle CORS preflight
@@ -113,7 +148,7 @@ function doGet(e) {
       case 'getKid':          return jsonOk(getKid(p.kid_id));
       case 'getTransactions': return jsonOk(getTransactions(p.kid_id, Number(p.days) || 30));
       case 'getGoals':        return jsonOk(getGoals(p.kid_id));
-      case 'addTransaction':  return jsonOk(addTransaction({ kid_id: p.kid_id, type: String(p.type), amount: Number(p.amount), note: p.note || '' }));
+      case 'addTransaction':  return jsonOk(addTransaction({ kid_id: p.kid_id, type: String(p.type), amount: Number(p.amount), note: p.note || '', account: p.account || '', date: p.date || '' }));
       case 'checkDaily':      return jsonOk(checkDaily(p.kid_id));
       case 'setGoal':         return jsonOk(setGoal({ kid_id: p.kid_id, goal_id: p.goal_id, name: p.name, target_amount: p.target_amount, emoji: p.emoji }));
       default:                return jsonErr('Unknown action: ' + p.action);
@@ -153,6 +188,9 @@ function getKid(kid_id) {
   var txRows = txSheet.getDataRange().getValues();
   var txHeaders = txRows[0];
   var balance = 0;
+  var bankTotal = 0; // ยอดในธนาคารทั้งหมด (ฝาก + ดอกเบี้ย) — ออกจากกระปุกแล้ว แต่ยังเป็นเงินออม
+  var bankBy = {};   // แยกตามชื่อธนาคาร
+  var accountIdx = txHeaders.indexOf('account');
   var streak = 0;
   var dailyDates = [];
 
@@ -162,8 +200,13 @@ function getKid(kid_id) {
     if (rowKid !== kid_id) continue;
     var type = row[txHeaders.indexOf('type')];
     var amount = Number(row[txHeaders.indexOf('amount')]);
-    if (['deposit', 'daily', 'bonus', 'loan'].indexOf(type) !== -1) balance += amount;
-    else balance -= amount;
+    if (BALANCE_PLUS.indexOf(type) !== -1) balance += amount;
+    else if (BANK_ONLY.indexOf(type) === -1) balance -= amount;
+    if (type === 'bank' || BANK_ONLY.indexOf(type) !== -1) {
+      var acct = (accountIdx === -1 ? '' : String(row[accountIdx]).trim()) || 'ธนาคาร';
+      bankTotal += amount;
+      bankBy[acct] = (bankBy[acct] || 0) + amount;
+    }
     if (type === 'daily' || type === 'deposit') {
       var ts = row[txHeaders.indexOf('timestamp')];
       dailyDates.push(String(ts).slice(0, 10));
@@ -197,6 +240,10 @@ function getKid(kid_id) {
   }
 
   kid.balance = balance;
+  kid.bank_total = Math.round(bankTotal * 100) / 100;
+  kid.banks = Object.keys(bankBy).map(function(name) {
+    return { name: name, total: Math.round(bankBy[name] * 100) / 100 };
+  });
   kid.streak = streakCount;
   kid.loans = loans;
   return kid;
@@ -242,14 +289,18 @@ function addTransaction(body) {
   var type   = body.type;
   var amount = Number(body.amount);
   var note   = body.note || '';
+  var account = String(body.account || '').trim();
+  var isBankType = type === 'bank' || BANK_ONLY.indexOf(type) !== -1;
 
   // Compute current balance
   var kidData = getKid(kid_id);
   var balance = kidData.balance;
 
   // Validation
-  if (['withdraw', 'loan_repay'].indexOf(type) !== -1 && amount > balance)
+  if (['withdraw', 'loan_repay', 'bank'].indexOf(type) !== -1 && amount > balance)
     throw new Error('Insufficient balance');
+  if (isBankType && !account) throw new Error('Missing bank account');
+  if (isBankType && !(amount > 0)) throw new Error('Invalid amount');
   if (type === 'loan') {
     var loanRemaining = kidData.loans.reduce(function(s, l) { return s + Number(l.remaining); }, 0);
     if (loanRemaining + amount > Number(kidData.loan_limit || 200))
@@ -257,13 +308,20 @@ function addTransaction(body) {
   }
 
   var newBalance = balance;
-  if (['deposit', 'daily', 'bonus', 'loan'].indexOf(type) !== -1) newBalance += amount;
-  else newBalance -= amount;
+  if (BALANCE_PLUS.indexOf(type) !== -1) newBalance += amount;
+  else if (BANK_ONLY.indexOf(type) === -1) newBalance -= amount;
 
   var tx_id = Utilities.getUuid();
   var timestamp = Utilities.formatDate(new Date(), 'Asia/Bangkok', "yyyy-MM-dd'T'HH:mm:ss+07:00");
+  // BANK_ONLY ลงวันที่ที่เข้าบัญชีจริงได้ (ย้อนหลังได้ ห้ามล่วงหน้า) — ไม่แตะกระปุก จึงไม่ทำให้ balance_after ย้อนหลังผิด
+  if (BANK_ONLY.indexOf(type) !== -1 && body.date) {
+    var today = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date) || body.date > today) throw new Error('Invalid date');
+    timestamp = body.date + 'T12:00:00+07:00';
+  }
   var sheet = getSheet('transactions');
-  sheet.appendRow([tx_id, kid_id, type, amount, note, timestamp, newBalance]);
+  ensureTxHeaders_(sheet);
+  sheet.appendRow([tx_id, kid_id, type, amount, note, timestamp, newBalance, isBankType ? account : '']);
 
   // If loan_repay, update loans remaining
   if (type === 'loan_repay') {
