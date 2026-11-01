@@ -51,7 +51,8 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
       data.type === 'loan' ? `🤝 ยืม +${data.amount} บาท` :
       data.type === 'bonus' ? `⭐ โบนัส +${data.amount} บาท` :
       data.type === 'loan_repay' ? `💜 จ่ายคืน -${data.amount} บาท` :
-      data.type === 'bank' ? `🏦 ฝากธนาคาร ${data.amount} บาท` : 'บันทึกแล้ว!'
+      data.type === 'bank' ? `🏦 ฝาก ${data.account} ${data.amount} บาท` :
+      data.type === 'bank_interest' ? `💹 ดอกเบี้ย ${data.account} +${data.amount} บาท` : 'บันทึกแล้ว!'
     )
     refresh()
   }
@@ -71,6 +72,8 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
   // เงินออม = กระปุก + ที่ย้ายไปธนาคาร (ใช้กับเป้าหมาย) ส่วนการใช้เงินเช็คกับกระปุกอย่างเดียว
   const bankTotal = Number(kid?.bank_total || 0)
   const saved = Number(kid?.balance || 0) + bankTotal
+  const bankSupported = kid?.bank_total !== undefined // Apps Script ตัวที่รู้จัก bank/account แล้ว
+  const banks = kid?.banks || []
 
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: '#1A1A2E' }}>
@@ -108,13 +111,14 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
           <>
             {kid && (
               <BalanceHero
-                kid={{ id: kidConfig.id, name: kidConfig.name, avatar: kidConfig.avatar, balance: kid.balance, bankTotal }}
+                kid={{ id: kidConfig.id, name: kidConfig.name, avatar: kidConfig.avatar, balance: kid.balance, bankTotal, banks }}
                 todayDelta={todayDelta}
+                onAddInterest={() => setModal('bank_interest')}
               />
             )}
             <StreakBar streak={kid?.streak || 0} />
             <SavingsChart transactions={transactions || []} />
-            <ActionGrid onAction={(type) => setModal(type)} />
+            <ActionGrid onAction={(type) => setModal(type)} showBank={bankSupported} />
             {goals?.length > 0 && (
               <GoalCard goal={goals[0]} balance={saved} />
             )}
@@ -151,6 +155,7 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
           type={modal}
           balance={kid?.balance || 0}
           loanRemaining={loanRemaining}
+          banks={banks}
           onClose={() => setModal(null)}
           onConfirm={handleAction}
         />

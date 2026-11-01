@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart,
 } from 'recharts'
-import { signedAmount, localDateStr, txDate } from '../lib/tx'
+import { signedAmount, localDateStr, txDate, PIGGY_NEUTRAL } from '../lib/tx'
 
 function getMoodMessage(trend) {
   if (trend < -200) return '😱 เงินลดฮวบเลย! ระวังด้วยนะ! 🙏'
@@ -32,8 +32,10 @@ export default function SavingsChart({ transactions }) {
   const data = useMemo(() => {
     // transactions มีแค่ 30 วันล่าสุด ถ้าเอามาบวกลบเองจะขาดยอดยกมา (กราฟเคยติดศูนย์)
     // จึงใช้ balance_after ที่ชีตบันทึกไว้ทุกรายการ แล้วลากยอดล่าสุดของแต่ละวันต่อไป
+    // ดอกเบี้ยลงวันย้อนหลังได้ แต่ balance_after เป็นยอดกระปุก ณ วันที่กรอก — ถ้าเอามา plot เส้นจะกระโดด
     const txs = transactions
       .filter((tx) => tx.timestamp && tx.balance_after !== '' && tx.balance_after != null)
+      .filter((tx) => !PIGGY_NEUTRAL.includes(tx.type))
       .sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)))
 
     // ยอดก่อนรายการแรกในช่วง = ยอดหลังรายการแรก ถอยกลับด้วยจำนวนของมัน

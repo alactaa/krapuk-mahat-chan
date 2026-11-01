@@ -22,7 +22,10 @@ export default function TransactionFeed({ transactions }) {
               <div className="flex items-center gap-3">
                 <span className="text-xl w-7 text-center">{meta.icon}</span>
                 <div>
-                  <p className="text-sm font-medium">{tx.note || meta.label}</p>
+                  <p className="text-sm font-medium">
+                    {tx.note || meta.label}
+                    {tx.account && <span className="text-xs text-[#40C4FF] ml-1.5">· {tx.account}</span>}
+                  </p>
                   <p className="text-xs text-white/40">{formatDate(tx.timestamp)}</p>
                 </div>
               </div>

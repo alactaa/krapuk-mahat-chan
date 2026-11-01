@@ -10,9 +10,17 @@ export const TYPE_META = {
   loan_repay: { icon: '💜', label: 'จ่ายคืน',     color: '#9C27B0', sign: '-' },
   // เงินออกจากกระปุกเหมือน withdraw แต่ยังเป็นเงินออม — สถิติ/เหรียญต้องไม่นับเป็นการใช้เงิน
   bank:       { icon: '🏦', label: 'ฝากธนาคาร',   color: '#00B0FF', sign: '-' },
+  bank_interest: { icon: '💹', label: 'ดอกเบี้ยธนาคาร', color: '#40C4FF', sign: '+' },
 }
 
+// เข้าบัญชีธนาคารตรง ไม่แตะกระปุก — ต้องตรงกับ Code.gs
+export const PIGGY_NEUTRAL = ['bank_interest']
+
+// บัญชีที่เด็กๆ มีอยู่ตอนนี้ — ธนาคารอื่นพิมพ์เองในฟอร์มได้
+export const BANK_PRESETS = ['SCB', 'ออมสิน']
+
 export function signedAmount(tx) {
+  if (PIGGY_NEUTRAL.includes(tx.type)) return 0
   return (BALANCE_PLUS.includes(tx.type) ? 1 : -1) * Number(tx.amount)
 }
 

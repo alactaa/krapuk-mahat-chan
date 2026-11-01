@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BANK_PRESETS, localDateStr } from '../lib/tx'
 
 const MODAL_META = {
   deposit:    { title: '💰 ฝากเงิน',   color: '#00C853', label: 'จำนวนที่ฝาก' },
@@ -7,27 +8,42 @@ const MODAL_META = {
   bonus:      { title: '⭐ โบนัส',     color: '#FFD600', label: 'จำนวนโบนัส' },
   loan_repay: { title: '💜 จ่ายคืน',   color: '#9C27B0', label: 'จำนวนที่จ่าย' },
   bank:       { title: '🏦 ฝากธนาคาร', color: '#00B0FF', label: 'จำนวนที่เอาไปฝาก' },
+  bank_interest: { title: '💹 ดอกเบี้ยธนาคาร', color: '#40C4FF', label: 'ดอกเบี้ยที่ได้' },
 }
 
 const QUICK_AMOUNTS = [20, 50, 100, 200]
 
-export default function ActionModal({ type, onClose, onConfirm, balance, loanRemaining }) {
+export default function ActionModal({ type, onClose, onConfirm, balance, loanRemaining, banks = [] }) {
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [account, setAccount] = useState('')
+  const [date, setDate] = useState(localDateStr(new Date()))
 
   const meta = MODAL_META[type] || {}
+  const isBank = type === 'bank' || type === 'bank_interest'
+  const isInterest = type === 'bank_interest'
+  const today = localDateStr(new Date())
+  // ธนาคารที่เคยใช้ขึ้นก่อน ตามด้วยรายชื่อทั่วไป · ดอกเบี้ยเลือกได้เฉพาะบัญชีที่มีอยู่
+  const bankChoices = isInterest
+    ? banks.map((b) => b.name)
+    : [...new Set([...banks.map((b) => b.name), ...BANK_PRESETS])]
 
   useEffect(() => {
     setAmount('')
     setNote('')
     setError('')
+    // ฝากต้องเลือกเองทุกครั้ง (มีหลายบัญชี กดผ่านๆ จะลงผิดธนาคาร) · ดอกเบี้ยเลือกให้ถ้ามีบัญชีเดียว
+    setAccount(isInterest && banks.length === 1 ? banks[0].name : '')
+    setDate(localDateStr(new Date()))
   }, [type])
 
   function validate(val) {
     const n = Number(val)
     if (!val || n <= 0) return 'กรุณากรอกจำนวนเงิน'
+    if (isBank && !account.trim()) return 'เลือกธนาคารก่อนนะ'
+    if (isInterest && (!date || date > today)) return 'วันที่ต้องไม่เกินวันนี้'
     if ((type === 'withdraw' || type === 'bank') && n > balance) return `เงินไม่พอ (มี ${balance.toLocaleString()} ฿)`
     if (type === 'loan' && (loanRemaining + n) > 200)
       return `ยืมได้อีกแค่ ${(200 - loanRemaining).toLocaleString()} ฿ (วงเงิน 200 ฿)`
@@ -43,7 +59,13 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
     if (err) { setError(err); return }
     setLoading(true)
     try {
-      await onConfirm({ type, amount: Number(amount), note })
+      await onConfirm({
+        type,
+        amount: Number(amount),
+        note,
+        ...(isBank ? { account: account.trim() } : {}),
+        ...(isInterest ? { date } : {}),
+      })
       onClose()
     } catch (e) {
       setError(e.message || 'เกิดข้อผิดพลาด')
@@ -68,8 +90,51 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
 
           <h2 className="text-lg font-semibold text-center mb-4">{meta.title}</h2>
 
-          {/* Quick amounts */}
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          {isBank && (
+            <div className="mb-4">
+              <label className="text-xs text-white/50 mb-1.5 block">ธนาคาร</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {bankChoices.map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => { setAccount(b); setError('') }}
+                    className={`px-3 py-1.5 rounded-full text-sm transition-all active:scale-95 ${
+                      account === b ? 'text-black font-semibold' : 'bg-white/10 text-white/70'
+                    }`}
+                    style={account === b ? { background: meta.color } : {}}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+              {!isInterest && (
+                <input
+                  type="text"
+                  value={bankChoices.includes(account) ? '' : account}
+                  onChange={(e) => { setAccount(e.target.value); setError('') }}
+                  placeholder="หรือพิมพ์ชื่อธนาคารอื่น"
+                  maxLength={30}
+                  className="w-full bg-white/10 border border-white/15 rounded-xl px-4 py-2.5 text-white text-base placeholder:text-white/20 outline-none focus:border-white/40 transition-colors"
+                />
+              )}
+            </div>
+          )}
+
+          {isInterest && (
+            <div className="mb-4">
+              <label className="text-xs text-white/50 mb-1 block">วันที่ดอกเบี้ยเข้า</label>
+              <input
+                type="date"
+                value={date}
+                max={today}
+                onChange={(e) => { setDate(e.target.value); setError('') }}
+                className="w-full bg-white/10 border border-white/15 rounded-xl px-4 py-2.5 text-white text-base outline-none focus:border-white/40 transition-colors [color-scheme:dark]"
+              />
+            </div>
+          )}
+
+          {/* Quick amounts — ดอกเบี้ยเป็นเศษสตางค์ ปุ่มลัดไม่มีประโยชน์ */}
+          {!isInterest && <div className="grid grid-cols-4 gap-2 mb-4">
             {QUICK_AMOUNTS.map((q) => (
               <button
                 key={q}
@@ -84,14 +149,15 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
                 {q}
               </button>
             ))}
-          </div>
+          </div>}
 
           {/* Amount input */}
           <div className="mb-3">
             <label className="text-xs text-white/50 mb-1 block">{meta.label} (บาท)</label>
             <input
               type="number"
-              inputMode="numeric"
+              inputMode={isInterest ? 'decimal' : 'numeric'}
+              step={isInterest ? '0.01' : undefined}
               value={amount}
               onChange={(e) => { setAmount(e.target.value); setError('') }}
               placeholder="0"

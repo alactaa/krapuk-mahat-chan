@@ -6,10 +6,12 @@ const actions = [
   { key: 'bank', icon: '🏦', label: 'ฝากธนาคาร', color: '#00B0FF' },
 ]
 
-export default function ActionGrid({ onAction }) {
+// showBank: ซ่อนปุ่มธนาคารจนกว่า Apps Script จะรองรับ (ส่ง bank_total มา) — ตัวเก่าไม่เก็บชื่อธนาคาร
+export default function ActionGrid({ onAction, showBank }) {
+  const shown = showBank ? actions : actions.filter((a) => a.key !== 'bank')
   return (
-    <div className="grid grid-cols-5 gap-2 mx-4 mb-3">
-      {actions.map((a) => (
+    <div className={`grid ${showBank ? 'grid-cols-5 gap-2' : 'grid-cols-4 gap-3'} mx-4 mb-3`}>
+      {shown.map((a) => (
         <button
           key={a.key}
           onClick={() => onAction(a.key)}
