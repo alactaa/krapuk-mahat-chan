@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api } from '../lib/api'
 import GoalCard from './GoalCard'
 
-const EMOJIS = ['🎯', '🏗️', '🚲', '🎮', '📱', '🧸', '⚽', '🎨', '✈️', '🎁']
+const EMOJIS = ['💰', '🎯', '🏗️', '🚲', '🎮', '📱', '🧸', '⚽', '🎨', '✈️', '🎁']
 
 function etaText(remain, perDay) {
   if (remain <= 0) return '🎉 ถึงเป้าแล้ว! ไปบอกพ่อแม่ได้เลย'
