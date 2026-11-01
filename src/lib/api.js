@@ -2,7 +2,10 @@ async function call(params) {
   const qs = new URLSearchParams(params).toString()
   const res = await fetch(`/api/proxy?${qs}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  const data = await res.json()
+  // Apps Script ตอบ 200 เสมอ ข้อผิดพลาดมาเป็น { error } — ไม่โยนต่อจะขึ้น toast ว่าสำเร็จทั้งที่ไม่ได้บันทึก
+  if (data?.error) throw new Error(data.error)
+  return data
 }
 
 export const api = {

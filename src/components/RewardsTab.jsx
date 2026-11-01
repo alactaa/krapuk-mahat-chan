@@ -51,6 +51,8 @@ function BadgeTrack({ title, icon, steps, value, fmt }) {
 export default function RewardsTab({ kid, transactions, goals }) {
   const streak = Number(kid?.streak || 0)
   const balance = Number(kid?.balance || 0)
+  // เอาไปฝากธนาคารแล้วต้องไม่เสียเหรียญ — นับรวมเป็นเงินออม
+  const saved = balance + Number(kid?.bank_total || 0)
 
   const weekAgo = new Date()
   weekAgo.setDate(weekAgo.getDate() - 6)
@@ -59,15 +61,16 @@ export default function RewardsTab({ kid, transactions, goals }) {
   const specials = [
     { icon: '⭐', label: 'ได้โบนัสเดือนนี้', got: transactions.some((tx) => tx.type === 'bonus') },
     { icon: '🛡️', label: '7 วันไม่ใช้เงิน', got: !transactions.some((tx) => tx.type === 'withdraw' && txDate(tx) >= weekStart) },
+    { icon: '🏦', label: 'ฝากธนาคาร', got: saved > balance || transactions.some((tx) => tx.type === 'bank') },
     { icon: '💜', label: 'ไม่มีหนี้ค้าง', got: !(kid?.loans || []).some((l) => l.status === 'active') },
     { icon: '🎯', label: 'มีเป้าหมาย', got: goals.length > 0 },
-    { icon: '🏁', label: 'ถึงเป้าหมาย', got: goals.some((g) => balance >= Number(g.target_amount)) },
+    { icon: '🏁', label: 'ถึงเป้าหมาย', got: goals.some((g) => saved >= Number(g.target_amount)) },
   ]
 
   const total = STREAK_STEPS.length + SAVING_STEPS.length + specials.length
   const earned =
     STREAK_STEPS.filter((s) => streak >= s).length +
-    SAVING_STEPS.filter((s) => balance >= s).length +
+    SAVING_STEPS.filter((s) => saved >= s).length +
     specials.filter((b) => b.got).length
 
   return (
@@ -81,7 +84,7 @@ export default function RewardsTab({ kid, transactions, goals }) {
       </div>
 
       <BadgeTrack title="ออมติดต่อกัน" icon="🔥" steps={STREAK_STEPS} value={streak} fmt={(n) => `${n.toLocaleString()} วัน`} />
-      <BadgeTrack title="เงินในกระปุก" icon="💰" steps={SAVING_STEPS} value={balance} fmt={(n) => `${n.toLocaleString()} ฿`} />
+      <BadgeTrack title="เงินออมทั้งหมด" icon="💰" steps={SAVING_STEPS} value={saved} fmt={(n) => `${n.toLocaleString()} ฿`} />
 
       <div className="glass-card mx-4 mb-3 p-4">
         <h3 className="text-sm font-medium text-white/80 mb-3">✨ เหรียญพิเศษ</h3>

@@ -8,6 +8,8 @@ export const TYPE_META = {
   loan:       { icon: '🤝', label: 'ยืมเงิน',     color: '#9C27B0', sign: '+' },
   bonus:      { icon: '⭐', label: 'โบนัส',       color: '#FFD600', sign: '+' },
   loan_repay: { icon: '💜', label: 'จ่ายคืน',     color: '#9C27B0', sign: '-' },
+  // เงินออกจากกระปุกเหมือน withdraw แต่ยังเป็นเงินออม — สถิติ/เหรียญต้องไม่นับเป็นการใช้เงิน
+  bank:       { icon: '🏦', label: 'ฝากธนาคาร',   color: '#00B0FF', sign: '-' },
 }
 
 export function signedAmount(tx) {

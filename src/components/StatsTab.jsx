@@ -18,7 +18,7 @@ function moodFor(net, income) {
   if (kept >= 0.8) return '🤩 เก็บไว้ได้เกือบหมด สุดยอดไปเลย!'
   if (kept >= 0.5) return '😊 เก็บได้มากกว่าครึ่ง เก่งมาก!'
   if (kept >= 0) return '🙂 ยังเหลือเก็บอยู่ ลองใช้น้อยลงอีกนิดนะ'
-  return '🤔 ช่วงนี้เงินออกมากกว่าเงินเข้า'
+  return '🤔 ช่วงนี้ใช้เงินมากกว่าที่ได้มา'
 }
 
 export default function StatsTab({ transactions }) {
@@ -28,6 +28,7 @@ export default function StatsTab({ transactions }) {
 
   const income = sumOf(['daily', 'deposit', 'bonus'])
   const out = sumOf(['withdraw'])
+  const banked = sumOf(['bank']) // ย้ายไปธนาคาร ยังนับว่าเก็บไว้
   const net = income - out
   const keptPct = income > 0 ? Math.max(0, Math.min(100, Math.round((net / income) * 100))) : 0
 
@@ -53,9 +54,9 @@ export default function StatsTab({ transactions }) {
         <h3 className="text-sm font-medium text-white/80 mb-3">📊 สรุป {PERIOD_DAYS} วันล่าสุด</h3>
         <div className="grid grid-cols-2 gap-2 mb-3">
           <StatBox icon="⬆️" label="เงินเข้า" value={`+${income.toLocaleString()} ฿`} color="#00C853" />
-          <StatBox icon="⬇️" label="เงินออก" value={`-${out.toLocaleString()} ฿`} color="#FF5252" />
+          <StatBox icon="🛒" label="ใช้ไป" value={`-${out.toLocaleString()} ฿`} color="#FF5252" />
+          <StatBox icon="🏦" label="ฝากธนาคาร" value={`${banked.toLocaleString()} ฿`} color="#40C4FF" />
           <StatBox icon="🛡️" label="วันที่ไม่ใช้เงิน" value={`${PERIOD_DAYS - spendDays} วัน`} color="#69F0AE" />
-          <StatBox icon="🛒" label="ใช้เงิน" value={`${withdraws.length} ครั้ง`} color="#FFAB40" />
         </div>
         <div className="flex justify-between text-xs text-white/60 mb-1.5">
           <span>เก็บไว้ได้</span>
@@ -98,7 +99,7 @@ export default function StatsTab({ transactions }) {
       )}
 
       <div className="glass-card mx-4 mb-3 p-4">
-        <h3 className="text-sm font-medium text-white/80 mb-3">🛒 เงินออกก้อนใหญ่สุด</h3>
+        <h3 className="text-sm font-medium text-white/80 mb-3">🛒 ใช้เงินก้อนใหญ่สุด</h3>
         {topOut.length === 0 ? (
           <p className="text-center text-white/30 text-sm py-2">ไม่ได้ใช้เงินเลย เก่งมาก! 🎉</p>
         ) : (

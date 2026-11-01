@@ -3,11 +3,12 @@ const actions = [
   { key: 'withdraw', icon: '🛒', label: 'ใช้', color: '#FF3D00' },
   { key: 'loan', icon: '🤝', label: 'ยืม', color: '#9C27B0' },
   { key: 'bonus', icon: '⭐', label: 'โบนัส', color: '#FFD600' },
+  { key: 'bank', icon: '🏦', label: 'ฝากธนาคาร', color: '#00B0FF' },
 ]
 
 export default function ActionGrid({ onAction }) {
   return (
-    <div className="grid grid-cols-4 gap-3 mx-4 mb-3">
+    <div className="grid grid-cols-5 gap-2 mx-4 mb-3">
       {actions.map((a) => (
         <button
           key={a.key}

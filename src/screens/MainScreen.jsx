@@ -50,7 +50,8 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
       data.type === 'withdraw' ? `🛒 ใช้ -${data.amount} บาท` :
       data.type === 'loan' ? `🤝 ยืม +${data.amount} บาท` :
       data.type === 'bonus' ? `⭐ โบนัส +${data.amount} บาท` :
-      data.type === 'loan_repay' ? `💜 จ่ายคืน -${data.amount} บาท` : 'บันทึกแล้ว!'
+      data.type === 'loan_repay' ? `💜 จ่ายคืน -${data.amount} บาท` :
+      data.type === 'bank' ? `🏦 ฝากธนาคาร ${data.amount} บาท` : 'บันทึกแล้ว!'
     )
     refresh()
   }
@@ -67,6 +68,9 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
 
   const activeLoans = (kid?.loans || []).filter((l) => l.status === 'active')
   const loanRemaining = activeLoans.reduce((s, l) => s + Number(l.remaining), 0)
+  // เงินออม = กระปุก + ที่ย้ายไปธนาคาร (ใช้กับเป้าหมาย) ส่วนการใช้เงินเช็คกับกระปุกอย่างเดียว
+  const bankTotal = Number(kid?.bank_total || 0)
+  const saved = Number(kid?.balance || 0) + bankTotal
 
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: '#1A1A2E' }}>
@@ -93,7 +97,7 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
         ) : activeNav === 'goals' ? (
           <GoalsTab
             goals={goals || []}
-            balance={kid?.balance || 0}
+            saved={saved}
             dailyAmount={kid?.daily_amount || 0}
             kidId={kidConfig.id}
             onSaved={refresh}
@@ -104,7 +108,7 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
           <>
             {kid && (
               <BalanceHero
-                kid={{ id: kidConfig.id, name: kidConfig.name, avatar: kidConfig.avatar, balance: kid.balance }}
+                kid={{ id: kidConfig.id, name: kidConfig.name, avatar: kidConfig.avatar, balance: kid.balance, bankTotal }}
                 todayDelta={todayDelta}
               />
             )}
@@ -112,7 +116,7 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
             <SavingsChart transactions={transactions || []} />
             <ActionGrid onAction={(type) => setModal(type)} />
             {goals?.length > 0 && (
-              <GoalCard goal={goals[0]} balance={kid?.balance || 0} />
+              <GoalCard goal={goals[0]} balance={saved} />
             )}
             {activeLoans.length > 0 && (
               <LoanWarning loans={activeLoans} onRepay={() => setModal('loan_repay')} />

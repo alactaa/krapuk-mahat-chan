@@ -6,6 +6,7 @@ const MODAL_META = {
   loan:       { title: '🤝 ยืมเงิน',   color: '#9C27B0', label: 'จำนวนที่ยืม' },
   bonus:      { title: '⭐ โบนัส',     color: '#FFD600', label: 'จำนวนโบนัส' },
   loan_repay: { title: '💜 จ่ายคืน',   color: '#9C27B0', label: 'จำนวนที่จ่าย' },
+  bank:       { title: '🏦 ฝากธนาคาร', color: '#00B0FF', label: 'จำนวนที่เอาไปฝาก' },
 }
 
 const QUICK_AMOUNTS = [20, 50, 100, 200]
@@ -27,7 +28,7 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
   function validate(val) {
     const n = Number(val)
     if (!val || n <= 0) return 'กรุณากรอกจำนวนเงิน'
-    if (type === 'withdraw' && n > balance) return `เงินไม่พอ (มี ${balance.toLocaleString()} ฿)`
+    if ((type === 'withdraw' || type === 'bank') && n > balance) return `เงินไม่พอ (มี ${balance.toLocaleString()} ฿)`
     if (type === 'loan' && (loanRemaining + n) > 200)
       return `ยืมได้อีกแค่ ${(200 - loanRemaining).toLocaleString()} ฿ (วงเงิน 200 ฿)`
     if (type === 'loan_repay') {

@@ -26,14 +26,13 @@ function GoalForm({ initial, kidId, onDone, onCancel }) {
     setSaving(true)
     setError('')
     try {
-      const res = await api.setGoal({
+      await api.setGoal({
         kid_id: kidId,
         ...(initial ? { goal_id: initial.goal_id } : {}),
         name: name.trim(),
         target_amount: Number(target),
         emoji,
       })
-      if (res?.error) throw new Error(res.error)
       onDone()
     } catch {
       setError('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ')
@@ -93,7 +92,7 @@ function GoalForm({ initial, kidId, onDone, onCancel }) {
   )
 }
 
-export default function GoalsTab({ goals, balance, dailyAmount, kidId, onSaved }) {
+export default function GoalsTab({ goals, saved, dailyAmount, kidId, onSaved }) {
   // null = ไม่ได้เปิดฟอร์ม, 'new' = เพิ่มใหม่, object = แก้ goal นั้น
   const [editing, setEditing] = useState(null)
 
@@ -121,10 +120,10 @@ export default function GoalsTab({ goals, balance, dailyAmount, kidId, onSaved }
       )}
 
       {goals.map((g) => {
-        const remain = Math.max(0, Number(g.target_amount) - balance)
+        const remain = Math.max(0, Number(g.target_amount) - saved)
         return (
           <div key={g.goal_id}>
-            <GoalCard goal={g} balance={balance} />
+            <GoalCard goal={g} balance={saved} />
             <div className="flex items-center justify-between mx-4 -mt-1 mb-4 px-1 gap-3">
               <p className="text-xs text-white/50">{etaText(remain, dailyAmount)}</p>
               <button

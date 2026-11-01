@@ -26,6 +26,23 @@ export default function BalanceHero({ kid, todayDelta }) {
           {todayDelta > 0 ? '+' : ''}{todayDelta.toLocaleString()} บาท วันนี้
         </div>
       )}
+      {/* bank_total มาจาก getKid (Apps Script ตัวใหม่) — ตัวเก่าไม่มี field นี้ก็แค่ไม่แสดง */}
+      {kid.bankTotal > 0 && (
+        <div className="glass-card w-full mt-4 px-4 py-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-white/60">🐷 ในกระปุก</span>
+            <span className="font-medium">{kid.balance.toLocaleString()} ฿</span>
+          </div>
+          <div className="flex justify-between text-sm mt-1">
+            <span className="text-white/60">🏦 ในบัญชีธนาคาร</span>
+            <span className="font-medium text-[#40C4FF]">{kid.bankTotal.toLocaleString()} ฿</span>
+          </div>
+          <div className="flex justify-between mt-2 pt-2 border-t border-white/10">
+            <span className="text-sm text-white/80">💰 เงินออมทั้งหมด</span>
+            <span className="text-base font-bold text-[#69F0AE]">{(kid.balance + kid.bankTotal).toLocaleString()} ฿</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
