@@ -11,10 +11,13 @@ export const TYPE_META = {
   // เงินออกจากกระปุกเหมือน withdraw แต่ยังเป็นเงินออม — สถิติ/เหรียญต้องไม่นับเป็นการใช้เงิน
   bank:       { icon: '🏦', label: 'ฝากธนาคาร',   color: '#00B0FF', sign: '-' },
   bank_interest: { icon: '💹', label: 'ดอกเบี้ยธนาคาร', color: '#40C4FF', sign: '+' },
+  // เงินจากข้างนอกเข้าบัญชีตรง (เช่น ผู้ใหญ่ให้แล้วเอาเข้าบัญชีเลย) — ไม่เคยผ่านกระปุก
+  bank_external: { icon: '🎁', label: 'เงินเข้าบัญชีตรง', color: '#40C4FF', sign: '+' },
 }
 
-// เข้าบัญชีธนาคารตรง ไม่แตะกระปุก — ต้องตรงกับ Code.gs
-export const PIGGY_NEUTRAL = ['bank_interest']
+// เข้าบัญชีธนาคารตรง ไม่แตะกระปุก — ต้องตรงกับ BANK_ONLY ใน Code.gs
+export const PIGGY_NEUTRAL = ['bank_interest', 'bank_external']
+export const BANK_TYPES = ['bank', ...PIGGY_NEUTRAL]
 
 // บัญชีที่เด็กๆ มีอยู่ตอนนี้ — ธนาคารอื่นพิมพ์เองในฟอร์มได้
 export const BANK_PRESETS = ['SCB', 'ออมสิน']

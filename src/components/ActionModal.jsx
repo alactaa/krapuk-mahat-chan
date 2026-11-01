@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BANK_PRESETS, localDateStr } from '../lib/tx'
+import { BANK_PRESETS, BANK_TYPES, PIGGY_NEUTRAL, localDateStr } from '../lib/tx'
 
 const MODAL_META = {
   deposit:    { title: '💰 ฝากเงิน',   color: '#00C853', label: 'จำนวนที่ฝาก' },
@@ -9,6 +9,7 @@ const MODAL_META = {
   loan_repay: { title: '💜 จ่ายคืน',   color: '#9C27B0', label: 'จำนวนที่จ่าย' },
   bank:       { title: '🏦 ฝากธนาคาร', color: '#00B0FF', label: 'จำนวนที่เอาไปฝาก' },
   bank_interest: { title: '💹 ดอกเบี้ยธนาคาร', color: '#40C4FF', label: 'ดอกเบี้ยที่ได้' },
+  bank_external: { title: '🎁 เงินเข้าบัญชีตรง', color: '#40C4FF', label: 'จำนวนที่เข้าบัญชี' },
 }
 
 const QUICK_AMOUNTS = [20, 50, 100, 200]
@@ -22,8 +23,9 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
   const [date, setDate] = useState(localDateStr(new Date()))
 
   const meta = MODAL_META[type] || {}
-  const isBank = type === 'bank' || type === 'bank_interest'
+  const isBank = BANK_TYPES.includes(type)
   const isInterest = type === 'bank_interest'
+  const isDated = PIGGY_NEUTRAL.includes(type) // ไม่แตะกระปุก จึงลงวันที่ย้อนหลังได้
   const today = localDateStr(new Date())
   // ธนาคารที่เคยใช้ขึ้นก่อน ตามด้วยรายชื่อทั่วไป · ดอกเบี้ยเลือกได้เฉพาะบัญชีที่มีอยู่
   const bankChoices = isInterest
@@ -43,7 +45,7 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
     const n = Number(val)
     if (!val || n <= 0) return 'กรุณากรอกจำนวนเงิน'
     if (isBank && !account.trim()) return 'เลือกธนาคารก่อนนะ'
-    if (isInterest && (!date || date > today)) return 'วันที่ต้องไม่เกินวันนี้'
+    if (isDated && (!date || date > today)) return 'วันที่ต้องไม่เกินวันนี้'
     if ((type === 'withdraw' || type === 'bank') && n > balance) return `เงินไม่พอ (มี ${balance.toLocaleString()} ฿)`
     if (type === 'loan' && (loanRemaining + n) > 200)
       return `ยืมได้อีกแค่ ${(200 - loanRemaining).toLocaleString()} ฿ (วงเงิน 200 ฿)`
@@ -64,7 +66,7 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
         amount: Number(amount),
         note,
         ...(isBank ? { account: account.trim() } : {}),
-        ...(isInterest ? { date } : {}),
+        ...(isDated ? { date } : {}),
       })
       onClose()
     } catch (e) {
@@ -120,9 +122,9 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
             </div>
           )}
 
-          {isInterest && (
+          {isDated && (
             <div className="mb-4">
-              <label className="text-xs text-white/50 mb-1 block">วันที่ดอกเบี้ยเข้า</label>
+              <label className="text-xs text-white/50 mb-1 block">{isInterest ? 'วันที่ดอกเบี้ยเข้า' : 'วันที่เงินเข้าบัญชี'}</label>
               <input
                 type="date"
                 value={date}
@@ -134,7 +136,7 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
           )}
 
           {/* Quick amounts — ดอกเบี้ยเป็นเศษสตางค์ ปุ่มลัดไม่มีประโยชน์ */}
-          {!isInterest && <div className="grid grid-cols-4 gap-2 mb-4">
+          {!isDated && <div className="grid grid-cols-4 gap-2 mb-4">
             {QUICK_AMOUNTS.map((q) => (
               <button
                 key={q}
@@ -156,8 +158,8 @@ export default function ActionModal({ type, onClose, onConfirm, balance, loanRem
             <label className="text-xs text-white/50 mb-1 block">{meta.label} (บาท)</label>
             <input
               type="number"
-              inputMode={isInterest ? 'decimal' : 'numeric'}
-              step={isInterest ? '0.01' : undefined}
+              inputMode={isDated ? 'decimal' : 'numeric'}
+              step={isDated ? '0.01' : undefined}
               value={amount}
               onChange={(e) => { setAmount(e.target.value); setError('') }}
               placeholder="0"

@@ -52,7 +52,8 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
       data.type === 'bonus' ? `⭐ โบนัส +${data.amount} บาท` :
       data.type === 'loan_repay' ? `💜 จ่ายคืน -${data.amount} บาท` :
       data.type === 'bank' ? `🏦 ฝาก ${data.account} ${data.amount} บาท` :
-      data.type === 'bank_interest' ? `💹 ดอกเบี้ย ${data.account} +${data.amount} บาท` : 'บันทึกแล้ว!'
+      data.type === 'bank_interest' ? `💹 ดอกเบี้ย ${data.account} +${data.amount} บาท` :
+      data.type === 'bank_external' ? `🎁 เข้าบัญชี ${data.account} +${data.amount} บาท` : 'บันทึกแล้ว!'
     )
     refresh()
   }
@@ -113,7 +114,8 @@ export default function MainScreen({ kid: kidConfig, onBack }) {
               <BalanceHero
                 kid={{ id: kidConfig.id, name: kidConfig.name, avatar: kidConfig.avatar, balance: kid.balance, bankTotal, banks }}
                 todayDelta={todayDelta}
-                onAddInterest={() => setModal('bank_interest')}
+                bankSupported={bankSupported}
+                onBankAction={setModal}
               />
             )}
             <StreakBar streak={kid?.streak || 0} />

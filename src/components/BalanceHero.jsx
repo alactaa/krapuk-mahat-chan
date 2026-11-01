@@ -1,4 +1,4 @@
-export default function BalanceHero({ kid, todayDelta, onAddInterest }) {
+export default function BalanceHero({ kid, todayDelta, bankSupported, onBankAction }) {
   const gradient = kid.id === 'tae'
     ? 'linear-gradient(160deg, #FF6B9D, #FF9A3C)'
     : 'linear-gradient(160deg, #4FC3F7, #7C4DFF)'
@@ -28,7 +28,7 @@ export default function BalanceHero({ kid, todayDelta, onAddInterest }) {
         </div>
       )}
       {/* banks/bank_total มาจาก getKid (Apps Script ตัวใหม่) — ตัวเก่าไม่มี field นี้ก็แค่ไม่แสดง */}
-      {kid.bankTotal > 0 && (
+      {bankSupported && (
         <div className="glass-card w-full mt-4 px-4 py-3">
           <div className="flex justify-between text-sm">
             <span className="text-white/60">🐷 ในกระปุก</span>
@@ -44,12 +44,22 @@ export default function BalanceHero({ kid, todayDelta, onAddInterest }) {
             <span className="text-sm text-white/80">💰 เงินออมทั้งหมด</span>
             <span className="text-base font-bold text-[#69F0AE]">{(kid.balance + kid.bankTotal).toLocaleString()} ฿</span>
           </div>
-          <button
-            onClick={onAddInterest}
-            className="w-full mt-3 py-2 rounded-xl bg-white/10 text-xs text-white/70 active:scale-95 transition-transform"
-          >
-            💹 บันทึกดอกเบี้ยที่ได้
-          </button>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => onBankAction('bank_external')}
+              className="flex-1 py-2 rounded-xl bg-white/10 text-xs text-white/70 active:scale-95 transition-transform"
+            >
+              🎁 เงินเข้าบัญชีตรง
+            </button>
+            {banks.length > 0 && (
+              <button
+                onClick={() => onBankAction('bank_interest')}
+                className="flex-1 py-2 rounded-xl bg-white/10 text-xs text-white/70 active:scale-95 transition-transform"
+              >
+                💹 ดอกเบี้ย
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
